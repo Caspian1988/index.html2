@@ -537,6 +537,8 @@
       lastSpeedMph = speedMph;
 
       document.getElementById('speed').innerText = `${speedMph} mph`;
+
+      // Evaluate Max Speed & Hard Braking
       evaluateSafetyTelematics(speedMps, speedMph, position.timestamp || Date.now());
 
       // Calculate distance to terminal stops

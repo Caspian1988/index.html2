@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -173,369 +174,409 @@
     }
   </style>
 </head>
+
 <body>
 
-<div class="container">
-  <div class="header">
-    <h1>🛰️ Live Route 6 GPS Simulator</h1>
-    <p class="byline">by Ramin</p>
-    <span id="gpsBadge" class="status-badge">GPS Standby</span>
-  </div>
-
-  <div class="grid">
-    <div class="metric-box">
-      <div class="metric-label">Detected Trip</div>
-      <div id="activeTrip" class="metric-value">Trip --</div>
+  <div class="container">
+    <div class="header">
+      <h1>🛰️ Live Route 6 GPS Simulator</h1>
+      <p class="byline">by Ramin</p>
+      <span id="gpsBadge" class="status-badge">GPS Standby</span>
     </div>
-    <div class="metric-box">
-      <div class="metric-label">Live Delay</div>
-      <div id="liveDelay" class="metric-value">+0 min</div>
+
+    <div class="grid">
+      <div class="metric-box">
+        <div class="metric-label">Active Trip</div>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 4px;">
+          <button type="button" onclick="adjustTrip(-1)"
+            style="width: auto; padding: 2px 8px; margin: 0; background: #334155; font-size: 0.8rem;">◀</button>
+          <div id="activeTrip" class="metric-value" style="margin: 0;">Trip --</div>
+          <button type="button" onclick="adjustTrip(1)"
+            style="width: auto; padding: 2px 8px; margin: 0; background: #334155; font-size: 0.8rem;">▶</button>
+        </div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Live Delay</div>
+        <div id="liveDelay" class="metric-value">+0 min</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="metric-box">
+        <div class="metric-label">Nearest Stop</div>
+        <div id="nearestZone" class="metric-value" style="font-size: 1rem; margin-top: 8px;">Locating...</div>
+      </div>
+      <div class="metric-box">
+        <div class="metric-label">Current Speed</div>
+        <div id="speed" class="metric-value">0 mph</div>
+      </div>
+    </div>
+
+    <div id="resultCard" class="result-card parkside-win">
+      <div style="font-size: 0.85rem; font-weight: bold; text-transform: uppercase;">8:47 PM Parkside Finish Odds</div>
+      <div id="probDisplay" class="prob-number">0%</div>
+      <div id="detailText" class="details">Start live tracking to calculate real-time accumulation.</div>
+    </div>
+
+    <button id="startBtn" onclick="toggleTracking()">Start Live GPS Tracking</button>
+    <div class="mode-buttons">
+      <button id="breakBtn" type="button" onclick="toggleBreakMode()">⏸️ Pause for Break</button>
+      <button id="depotBtn" type="button" onclick="toggleDepotMode()">🚌 Depot Return</button>
+    </div>
+    <div style="text-align: center; margin-top: 10px;">
+      <button id="soundToggleBtn" type="button" onclick="toggleSound()"
+        style="background: transparent; border: 1px solid #334155; color: #94a3b8; font-size: 0.8rem; padding: 6px 12px; margin: 0; width: auto; border-radius: 20px;">
+        🔊 Sound Alerts: ON (Tap to Test)
+      </button>
     </div>
   </div>
 
-  <div class="grid">
-    <div class="metric-box">
-      <div class="metric-label">Nearest Stop</div>
-      <div id="nearestZone" class="metric-value" style="font-size: 1rem; margin-top: 8px;">Locating...</div>
-    </div>
-    <div class="metric-box">
-      <div class="metric-label">Current Speed</div>
-      <div id="speed" class="metric-value">0 mph</div>
-    </div>
-  </div>
+  <script>
+    // Run 758 Timetable Coordinates and Timings
+    const PARK_SIDE_COORDS = { lat: 39.0305, lng: -77.1085 }; // Parkside Cul-de-Sac
+    const MALL_COORDS = { lat: 39.0252, lng: -77.1478 };      // Westfield Montgomery Mall
+    const GROSVENOR_COORDS = { lat: 39.0229, lng: -77.1039 }; // Grosvenor Metro
 
-  <div id="resultCard" class="result-card parkside-win">
-    <div style="font-size: 0.85rem; font-weight: bold; text-transform: uppercase;">8:47 PM Parkside Finish Odds</div>
-    <div id="probDisplay" class="prob-number">0%</div>
-    <div id="detailText" class="details">Start live tracking to calculate real-time accumulation.</div>
-  </div>
+    const run758 = [
+      { trip: 1, dir: "EAST", lvTime: "13:00", arTime: "13:17", target: "Parkside" },
+      { trip: 2, dir: "WEST", lvTime: "13:18", arTime: "13:37", target: "Mall" },
+      { trip: 3, dir: "EAST", lvTime: "13:45", arTime: "14:02", target: "Parkside" },
+      { trip: 4, dir: "WEST", lvTime: "14:03", arTime: "14:22", target: "Mall" },
+      { trip: 5, dir: "EAST", lvTime: "14:30", arTime: "14:49", target: "Parkside" },
+      { trip: 6, dir: "WEST", lvTime: "14:50", arTime: "15:12", target: "Mall" },
+      { trip: 7, dir: "EAST", lvTime: "16:00", arTime: "16:19", target: "Parkside" },
+      { trip: 8, dir: "WEST", lvTime: "16:20", arTime: "16:42", target: "Mall" },
+      { trip: 9, dir: "EAST", lvTime: "16:45", arTime: "17:04", target: "Parkside" },
+      { trip: 10, dir: "WEST", lvTime: "17:05", arTime: "17:27", target: "Mall" },
+      { trip: 11, dir: "EAST", lvTime: "17:30", arTime: "17:49", target: "Parkside" },
+      { trip: 12, dir: "WEST", lvTime: "17:50", arTime: "18:12", target: "Mall" },
+      { trip: 13, dir: "EAST", lvTime: "18:15", arTime: "18:34", target: "Parkside" },
+      { trip: 14, dir: "WEST", lvTime: "18:35", arTime: "18:55", target: "Mall" },
+      { trip: 15, dir: "EAST", lvTime: "19:00", arTime: "19:17", target: "Parkside" },
+      { trip: 16, dir: "WEST", lvTime: "19:18", arTime: "19:38", target: "Mall" },
+      { trip: 17, dir: "EAST", lvTime: "19:45", arTime: "20:02", target: "Parkside" },
+      { trip: 18, dir: "WEST", lvTime: "20:03", arTime: "20:23", target: "Mall" },
+      { trip: 19, dir: "EAST", lvTime: "20:30", arTime: "20:47", target: "Parkside" }
+    ];
 
-  <button id="startBtn" onclick="toggleTracking()">Start Live GPS Tracking</button>
-  <div class="mode-buttons">
-    <button id="breakBtn" type="button" onclick="toggleBreakMode()">⏸️ Pause for Break</button>
-    <button id="depotBtn" type="button" onclick="toggleDepotMode()">🚌 Depot Return</button>
-  </div>
-  <div style="text-align: center; margin-top: 10px;">
-    <button id="soundToggleBtn" type="button" onclick="toggleSound()" style="background: transparent; border: 1px solid #334155; color: #94a3b8; font-size: 0.8rem; padding: 6px 12px; margin: 0; width: auto; border-radius: 20px;">
-      🔊 Sound Alerts: ON (Tap to Test)
-    </button>
-  </div>
-</div>
+    let watchId = null;
+    let isTracking = false;
+    let wakeLock = null;
+    let isOnBreak = false;
+    let isDepotBound = false;
+    let lastSpeedMph = 0;
+    let excludedDelayMs = 0;
+    let delayPauseStartedAt = null;
+    let manualTripIndex = null; // Allows driver to lock trip if delayed
 
-<script>
-// Run 758 Timetable Coordinates and Timings
-const PARK_SIDE_COORDS = { lat: 39.0305, lng: -77.1085 }; // Parkside Cul-de-Sac
-const MALL_COORDS = { lat: 39.0252, lng: -77.1478 };      // Westfield Montgomery Mall
-const GROSVENOR_COORDS = { lat: 39.0229, lng: -77.1039 }; // Grosvenor Metro
+    // ==========================================
+    // 🔊 Synthesized Web Audio Chime Engine
+    // ==========================================
+    let audioCtx = null;
+    let soundEnabled = true;
+    let lastFinishOutcome = null; // Tracks 'parkside' vs 'mall'
 
-const run758 = [
-  { trip: 1, dir: "EAST", lvTime: "13:00", arTime: "13:17", target: "Parkside" },
-  { trip: 2, dir: "WEST", lvTime: "13:18", arTime: "13:37", target: "Mall" },
-  { trip: 3, dir: "EAST", lvTime: "13:45", arTime: "14:02", target: "Parkside" },
-  { trip: 4, dir: "WEST", lvTime: "14:03", arTime: "14:22", target: "Mall" },
-  { trip: 5, dir: "EAST", lvTime: "14:30", arTime: "14:49", target: "Parkside" },
-  { trip: 6, dir: "WEST", lvTime: "14:50", arTime: "15:12", target: "Mall" },
-  { trip: 7, dir: "EAST", lvTime: "16:00", arTime: "16:19", target: "Parkside" },
-  { trip: 8, dir: "WEST", lvTime: "16:20", arTime: "16:42", target: "Mall" },
-  { trip: 9, dir: "EAST", lvTime: "16:45", arTime: "17:04", target: "Parkside" },
-  { trip: 10, dir: "WEST", lvTime: "17:05", arTime: "17:27", target: "Mall" },
-  { trip: 11, dir: "EAST", lvTime: "17:30", arTime: "17:49", target: "Parkside" },
-  { trip: 12, dir: "WEST", lvTime: "17:50", arTime: "18:12", target: "Mall" },
-  { trip: 13, dir: "EAST", lvTime: "18:15", arTime: "18:34", target: "Parkside" },
-  { trip: 14, dir: "WEST", lvTime: "18:35", arTime: "18:55", target: "Mall" },
-  { trip: 15, dir: "EAST", lvTime: "19:00", arTime: "19:17", target: "Parkside" },
-  { trip: 16, dir: "WEST", lvTime: "19:18", arTime: "19:38", target: "Mall" },
-  { trip: 17, dir: "EAST", lvTime: "19:45", arTime: "20:02", target: "Parkside" },
-  { trip: 18, dir: "WEST", lvTime: "20:03", arTime: "20:23", target: "Mall" },
-  { trip: 19, dir: "EAST", lvTime: "20:30", arTime: "20:47", target: "Parkside" }
-];
-
-let watchId = null;
-let isTracking = false;
-let wakeLock = null;
-let isOnBreak = false;
-let isDepotBound = false;
-let lastSpeedMph = 0;
-let excludedDelayMs = 0;
-let delayPauseStartedAt = null;
-
-// ==========================================
-// 🔊 Synthesized Web Audio Chime Engine
-// ==========================================
-let audioCtx = null;
-let soundEnabled = true;
-let lastFinishOutcome = null; // Tracks 'parkside' vs 'mall'
-
-// Initialize Audio Context on user click (browser security requirement)
-function initAudioContext() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
-  }
-}
-
-// Generates pure synthesized multi-tone chimes without external mp3s
-function playChime(type = 'parkside') {
-  if (!soundEnabled) return;
-  initAudioContext();
-  if (!audioCtx) return;
-
-  try {
-    const now = audioCtx.currentTime;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
-
-    if (type === 'parkside') {
-      // 🔔 Upbeat double chime for Parkside (659Hz -> 880Hz)
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(659.25, now);         // Note E5
-      osc.frequency.setValueAtTime(880.00, now + 0.15);   // Note A5
-      gain.gain.setValueAtTime(0.25, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
-      osc.start(now);
-      osc.stop(now + 0.7);
-    } else {
-      // ⚠️ Descending tone if flipped back to Mall (440Hz -> 349Hz)
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(440.00, now);         // Note A4
-      osc.frequency.setValueAtTime(349.23, now + 0.18);   // Note F4
-      gain.gain.setValueAtTime(0.2, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
-      osc.start(now);
-      osc.stop(now + 0.7);
+    // Initialize Audio Context on user click (browser security requirement)
+    function initAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
     }
-  } catch (err) {
-    console.warn("Audio alert error: " + err.message);
-  }
-}
 
-// Test / Mute Toggle Handler
-function toggleSound() {
-  initAudioContext();
-  if (soundEnabled) {
-    // Play a preview test chime
-    playChime('parkside');
-    const btn = document.getElementById('soundToggleBtn');
-    btn.innerText = "🔊 Sound Alerts: ON (Chime Tested)";
-    btn.style.borderColor = "var(--accent)";
-    btn.style.color = "var(--accent)";
-  }
-}
+    // Generates pure synthesized multi-tone chimes without external mp3s
+    function playChime(type = 'parkside') {
+      if (!soundEnabled) return;
+      initAudioContext();
+      if (!audioCtx) return;
 
-function syncDelayPauseState(isPaused, now = Date.now()) {
-  if (isPaused && delayPauseStartedAt === null) {
-    delayPauseStartedAt = now;
-  } else if (!isPaused && delayPauseStartedAt !== null) {
-    excludedDelayMs += now - delayPauseStartedAt;
-    delayPauseStartedAt = null;
-  }
-}
+      try {
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
 
-function getExcludedDelayMs(now = Date.now()) {
-  return excludedDelayMs + (delayPauseStartedAt === null ? 0 : now - delayPauseStartedAt);
-}
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
 
-function updateModeStatus() {
-  const gpsBadge = document.getElementById('gpsBadge');
-  if (!isTracking) return;
-
-  gpsBadge.innerText = isOnBreak
-    ? 'GPS Active (Meal Break)'
-    : isDepotBound
-      ? 'GPS Active (Depot Return)'
-      : 'GPS Active (Awake)';
-}
-
-function toggleBreakMode() {
-  isOnBreak = !isOnBreak;
-  const breakBtn = document.getElementById('breakBtn');
-  breakBtn.innerText = isOnBreak ? '▶️ Resume Active Run' : '⏸️ Pause for Break';
-  breakBtn.style.backgroundColor = isOnBreak ? '#27ae60' : '#f39c12';
-  syncDelayPauseState(isOnBreak || isDepotBound || lastSpeedMph === 0);
-  updateModeStatus();
-}
-
-function toggleDepotMode() {
-  isDepotBound = !isDepotBound;
-  const depotBtn = document.getElementById('depotBtn');
-  depotBtn.innerText = isDepotBound ? '🔄 Back on Route' : '🚌 Depot Return';
-  depotBtn.style.backgroundColor = isDepotBound ? '#2980b9' : '#8e44ad';
-  syncDelayPauseState(isOnBreak || isDepotBound || lastSpeedMph === 0);
-  if (isDepotBound) {
-    document.getElementById('activeTrip').innerText = 'Deadhead (Depot)';
-  }
-  updateModeStatus();
-}
-
-// Function to request Screen Wake Lock
-async function requestWakeLock() {
-  try {
-    if ('wakeLock' in navigator) {
-      wakeLock = await navigator.wakeLock.request('screen');
-      console.log('Screen Wake Lock is active!');
-      
-      // Re-apply wake lock if tab visibility changes
-      document.addEventListener('visibilitychange', async () => {
-        if (wakeLock !== null && document.visibilityState === 'visible') {
-          wakeLock = await navigator.wakeLock.request('screen');
+        if (type === 'parkside') {
+          // 🔔 Upbeat double chime for Parkside (659Hz -> 880Hz)
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(659.25, now);         // Note E5
+          osc.frequency.setValueAtTime(880.00, now + 0.15);   // Note A5
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+          osc.start(now);
+          osc.stop(now + 0.7);
+        } else {
+          // ⚠️ Descending tone if flipped back to Mall (440Hz -> 349Hz)
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(440.00, now);         // Note A4
+          osc.frequency.setValueAtTime(349.23, now + 0.18);   // Note F4
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+          osc.start(now);
+          osc.stop(now + 0.7);
         }
-      });
+      } catch (err) {
+        console.warn("Audio alert error: " + err.message);
+      }
     }
-  } catch (err) {
-    console.warn(`Wake Lock Error: ${err.name}, ${err.message}`);
-  }
-}
 
-// Function to release Screen Wake Lock
-function releaseWakeLock() {
-  if (wakeLock !== null) {
-    wakeLock.release()
-      .then(() => {
-        wakeLock = null;
-        console.log('Screen Wake Lock released.');
-      });
-  }
-}
+    // Test / Mute Toggle Handler
+    function toggleSound() {
+      initAudioContext();
+      if (soundEnabled) {
+        // Play a preview test chime
+        playChime('parkside');
+        const btn = document.getElementById('soundToggleBtn');
+        btn.innerText = "🔊 Sound Alerts: ON (Chime Tested)";
+        btn.style.borderColor = "var(--accent)";
+        btn.style.color = "var(--accent)";
+      }
+    }
 
-async function toggleTracking() {
-  if (!isTracking) {
-    initAudioContext();
-    if ("geolocation" in navigator) {
-      excludedDelayMs = 0;
-      delayPauseStartedAt = null;
-      lastSpeedMph = 0;
-      // 1. Activate GPS Tracking
-      watchId = navigator.geolocation.watchPosition(handleGpsSuccess, handleGpsError, {
-        enableHighAccuracy: true,
-        maximumAge: 5000,
-        timeout: 15000
-      });
-      
-      // 2. Prevent Display / CPU from Sleeping
-      await requestWakeLock();
+    function adjustTrip(delta) {
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-      isTracking = true;
-      document.getElementById('startBtn').innerText = "Stop Live Tracking";
-      document.getElementById('gpsBadge').className = "status-badge badge-active";
+      if (manualTripIndex === null) {
+        let autoIndex = run758.findIndex(t => {
+          const [h, m] = t.lvTime.split(':').map(Number);
+          return (h * 60 + m) > currentMinutes;
+        });
+        if (autoIndex === -1) autoIndex = run758.length;
+        manualTripIndex = Math.max(0, autoIndex - 1);
+      }
+
+      manualTripIndex = Math.max(0, Math.min(run758.length - 1, manualTripIndex + delta));
+      const currentTrip = run758[manualTripIndex];
+      document.getElementById('activeTrip').innerText = `Trip ${currentTrip.trip}`;
+      calculatePrediction(currentTrip, lastSpeedMph, "Manual Adjustment");
+    }
+
+    function syncDelayPauseState(isPaused, now = Date.now()) {
+      if (isPaused && delayPauseStartedAt === null) {
+        delayPauseStartedAt = now;
+      } else if (!isPaused && delayPauseStartedAt !== null) {
+        excludedDelayMs += now - delayPauseStartedAt;
+        delayPauseStartedAt = null;
+      }
+    }
+
+    function getExcludedDelayMs(now = Date.now()) {
+      return excludedDelayMs + (delayPauseStartedAt === null ? 0 : now - delayPauseStartedAt);
+    }
+
+    function updateModeStatus() {
+      const gpsBadge = document.getElementById('gpsBadge');
+      if (!isTracking) return;
+
+      gpsBadge.innerText = isOnBreak
+        ? 'GPS Active (Meal Break)'
+        : isDepotBound
+          ? 'GPS Active (Depot Return)'
+          : 'GPS Active (Awake)';
+    }
+
+    function toggleBreakMode() {
+      isOnBreak = !isOnBreak;
+      const breakBtn = document.getElementById('breakBtn');
+      breakBtn.innerText = isOnBreak ? '▶️ Resume Active Run' : '⏸️ Pause for Break';
+      breakBtn.style.backgroundColor = isOnBreak ? '#27ae60' : '#f39c12';
+      syncDelayPauseState(isOnBreak || isDepotBound); // FIXED: Removed speedMph === 0
       updateModeStatus();
-    } else {
-      alert("Geolocation is not supported by your browser.");
     }
-  } else {
-    // Stop GPS
-    navigator.geolocation.clearWatch(watchId);
-    
-    // Release Wake Lock
-    releaseWakeLock();
 
-    isTracking = false;
-    document.getElementById('startBtn').innerText = "Start Live GPS Tracking";
-    document.getElementById('gpsBadge').className = "status-badge";
-    document.getElementById('gpsBadge').innerText = "GPS Standby";
-  }
-}
-
-function handleGpsSuccess(position) {
-  const lat = position.coords.latitude;
-  const lng = position.coords.longitude;
-  const speedMph = Math.round((position.coords.speed || 0) * 2.23694);
-  lastSpeedMph = speedMph;
-  syncDelayPauseState(isOnBreak || isDepotBound || speedMph === 0);
-
-  document.getElementById('speed').innerText = `${speedMph} mph`;
-
-  // Calculate distance to key points
-  const distMall = getDistanceMeters(lat, lng, MALL_COORDS.lat, MALL_COORDS.lng);
-  const distParkside = getDistanceMeters(lat, lng, PARK_SIDE_COORDS.lat, PARK_SIDE_COORDS.lng);
-
-  let nearest = "En Route";
-  if (distMall < 300) nearest = "Montgomery Mall";
-  else if (distParkside < 300) nearest = "Parkside";
-  document.getElementById('nearestZone').innerText = nearest;
-
-  // Determine active trip based on current time
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-  let activeTripIndex = run758.findIndex(t => {
-    const [h, m] = t.lvTime.split(':').map(Number);
-    return (h * 60 + m) > currentMinutes;
-  });
-
-  if (activeTripIndex === -1) activeTripIndex = run758.length - 1;
-  const currentTrip = run758[Math.max(0, activeTripIndex - 1)];
-
-  if (!isDepotBound) {
-    document.getElementById('activeTrip').innerText = `Trip ${currentTrip.trip}`;
-  }
-
-  // Hold the current estimate during breaks, depot travel, and stops.
-  if (!isOnBreak && !isDepotBound && speedMph > 0) {
-    const [schH, schM] = currentTrip.lvTime.split(':').map(Number);
-    const scheduledDepartureMins = schH * 60 + schM;
-    const liveDelayMins = Math.max(
-      0,
-      currentMinutes - scheduledDepartureMins - getExcludedDelayMs() / 60000
-    );
-    document.getElementById('liveDelay').innerText = `+${liveDelayMins} min`;
-
-    const tripsRemaining = 19 - currentTrip.trip + 1;
-    const projectedDelay = liveDelayMins + (tripsRemaining * 3);
-    const probability = Math.min(99, Math.max(5, Math.round((projectedDelay / 15) * 65)));
-    const card = document.getElementById('resultCard');
-    const probDisplay = document.getElementById('probDisplay');
-    const detailText = document.getElementById('detailText');
-
-    probDisplay.innerText = `${probability}%`;
-
-    // Determine current outcome
-    const currentOutcome = (projectedDelay >= 15) ? 'parkside' : 'mall';
-
-    // 🔔 Only chime when the outcome flips (e.g. from Mall to Parkside)
-    if (lastFinishOutcome !== null && currentOutcome !== lastFinishOutcome) {
-      playChime(currentOutcome);
+    function toggleDepotMode() {
+      isDepotBound = !isDepotBound;
+      const depotBtn = document.getElementById('depotBtn');
+      depotBtn.innerText = isDepotBound ? '🔄 Back on Route' : '🚌 Depot Return';
+      depotBtn.style.backgroundColor = isDepotBound ? '#2980b9' : '#8e44ad';
+      syncDelayPauseState(isOnBreak || isDepotBound); // FIXED: Removed speedMph === 0
+      if (isDepotBound) {
+        document.getElementById('activeTrip').innerText = 'Deadhead (Depot)';
+      }
+      updateModeStatus();
     }
-    lastFinishOutcome = currentOutcome;
 
-    if (projectedDelay >= 15) {
-      card.className = "result-card parkside-win";
-      detailText.innerHTML = `<strong>Likely Finish: Parkside Cul-de-Sac (8:47 PM Target)</strong><br>` +
-                             `Projected Accumulation: +${projectedDelay} mins<br>` +
-                             `Live GPS detected near ${nearest}.`;
-    } else {
-      card.className = "result-card mall-win";
-      detailText.innerHTML = `<strong>Likely Finish: Montgomery Mall</strong><br>` +
-                             `Projected Accumulation: +${projectedDelay} mins<br>` +
-                             `Delay buffer is currently below the 15-minute threshold.`;
+    // Function to request Screen Wake Lock
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+          console.log('Screen Wake Lock is active!');
+
+          // Re-apply wake lock if tab visibility changes
+          document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+              wakeLock = await navigator.wakeLock.request('screen');
+            }
+          });
+        }
+      } catch (err) {
+        console.warn(`Wake Lock Error: ${err.name}, ${err.message}`);
+      }
     }
-  }
-}
 
-function handleGpsError(error) {
-  console.warn("GPS Error: " + error.message);
-  document.getElementById('gpsBadge').innerText = "GPS Error";
-}
+    // Function to release Screen Wake Lock
+    function releaseWakeLock() {
+      if (wakeLock !== null) {
+        wakeLock.release()
+          .then(() => {
+            wakeLock = null;
+            console.log('Screen Wake Lock released.');
+          });
+      }
+    }
 
-function getDistanceMeters(lat1, lon1, lat2, lon2) {
-  const R = 6371e3;
-  const φ1 = lat1 * Math.PI/180;
-  const φ2 = lat2 * Math.PI/180;
-  const Δφ = (lat2-lat1) * Math.PI/180;
-  const Δλ = (lon2-lon1) * Math.PI/180;
+    async function toggleTracking() {
+      if (!isTracking) {
+        initAudioContext();
+        if ("geolocation" in navigator) {
+          excludedDelayMs = 0;
+          delayPauseStartedAt = null;
+          lastSpeedMph = 0;
+          // 1. Activate GPS Tracking
+          watchId = navigator.geolocation.watchPosition(handleGpsSuccess, handleGpsError, {
+            enableHighAccuracy: true,
+            maximumAge: 5000,
+            timeout: 15000
+          });
 
-  const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-          Math.cos(φ1) * Math.cos(φ2) *
-          Math.sin(Δλ/2) * Math.sin(Δλ/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          // 2. Prevent Display / CPU from Sleeping
+          await requestWakeLock();
 
-  return R * c;
-}
-</script>
+          isTracking = true;
+          document.getElementById('startBtn').innerText = "Stop Live Tracking";
+          document.getElementById('gpsBadge').className = "status-badge badge-active";
+          updateModeStatus();
+        } else {
+          alert("Geolocation is not supported by your browser.");
+        }
+      } else {
+        // Stop GPS
+        navigator.geolocation.clearWatch(watchId);
+
+        // Release Wake Lock
+        releaseWakeLock();
+
+        isTracking = false;
+        document.getElementById('startBtn').innerText = "Start Live GPS Tracking";
+        document.getElementById('gpsBadge').className = "status-badge";
+        document.getElementById('gpsBadge').innerText = "GPS Standby";
+      }
+    }
+
+    function handleGpsSuccess(position) {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      const speedMph = Math.round((position.coords.speed || 0) * 2.23694);
+      lastSpeedMph = speedMph;
+
+      document.getElementById('speed').innerText = `${speedMph} mph`;
+
+      // Calculate distance to terminal stops
+      const distMall = getDistanceMeters(lat, lng, MALL_COORDS.lat, MALL_COORDS.lng);
+      const distParkside = getDistanceMeters(lat, lng, PARK_SIDE_COORDS.lat, PARK_SIDE_COORDS.lng);
+
+      let nearest = "En Route";
+      if (distMall < 300) nearest = "Montgomery Mall";
+      else if (distParkside < 300) nearest = "Parkside";
+      document.getElementById('nearestZone').innerText = nearest;
+
+      // Determine active trip
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+      let currentTrip;
+      if (manualTripIndex !== null) {
+        currentTrip = run758[manualTripIndex];
+      } else {
+        let activeTripIndex = run758.findIndex(t => {
+          const [h, m] = t.lvTime.split(':').map(Number);
+          return (h * 60 + m) > currentMinutes;
+        });
+        if (activeTripIndex === -1) activeTripIndex = run758.length;
+        currentTrip = run758[Math.max(0, activeTripIndex - 1)];
+      }
+
+      if (!isDepotBound) {
+        document.getElementById('activeTrip').innerText = `Trip ${currentTrip.trip}`;
+      }
+
+      // Calculate prediction (FIXED: Now calculates even when speed is 0 at a red light/terminal!)
+      if (!isOnBreak && !isDepotBound) {
+        calculatePrediction(currentTrip, speedMph, nearest);
+      }
+    }
+
+    function calculatePrediction(currentTrip, speedMph, nearest) {
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+      const [schH, schM] = currentTrip.lvTime.split(':').map(Number);
+      const scheduledDepartureMins = schH * 60 + schM;
+
+      // Real delay in minutes (excluding meal break / depot pause)
+      const liveDelayMins = Math.max(
+        0,
+        Math.round(currentMinutes - scheduledDepartureMins - (getExcludedDelayMs() / 60000))
+      );
+      document.getElementById('liveDelay').innerText = `+${liveDelayMins} min`;
+
+      // Projection logic
+      const tripsRemaining = Math.max(1, 19 - currentTrip.trip + 1);
+      const projectedDelay = liveDelayMins + (tripsRemaining * 2.5); // 2.5 min expected delay per remaining leg
+
+      const probability = Math.min(99, Math.max(5, Math.round((projectedDelay / 15) * 65)));
+      const card = document.getElementById('resultCard');
+      const probDisplay = document.getElementById('probDisplay');
+      const detailText = document.getElementById('detailText');
+
+      probDisplay.innerText = `${probability}%`;
+
+      const currentOutcome = (projectedDelay >= 15) ? 'parkside' : 'mall';
+      if (lastFinishOutcome !== null && currentOutcome !== lastFinishOutcome) {
+        playChime(currentOutcome);
+      }
+      lastFinishOutcome = currentOutcome;
+
+      if (projectedDelay >= 15) {
+        card.className = "result-card parkside-win";
+        detailText.innerHTML = `<strong>Likely Finish: Parkside Cul-de-Sac (8:47 PM Target)</strong><br>` +
+          `Projected Accumulation: +${Math.round(projectedDelay)} mins<br>` +
+          `Live GPS detected near ${nearest}.`;
+      } else {
+        card.className = "result-card mall-win";
+        detailText.innerHTML = `<strong>Likely Finish: Montgomery Mall</strong><br>` +
+          `Projected Accumulation: +${Math.round(projectedDelay)} mins<br>` +
+          `Delay buffer is currently below the 15-minute threshold.`;
+      }
+    }
+
+    function handleGpsError(error) {
+      console.warn("GPS Error: " + error.message);
+      document.getElementById('gpsBadge').innerText = "GPS Error";
+    }
+
+    function getDistanceMeters(lat1, lon1, lat2, lon2) {
+      const R = 6371e3;
+      const φ1 = lat1 * Math.PI / 180;
+      const φ2 = lat2 * Math.PI / 180;
+      const Δφ = (lat2 - lat1) * Math.PI / 180;
+      const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+      const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+        Math.cos(φ1) * Math.cos(φ2) *
+        Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+      return R * c;
+    }
+  </script>
 
 </body>
+
 </html>

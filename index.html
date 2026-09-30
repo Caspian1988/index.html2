@@ -532,10 +532,12 @@
     function handleGpsSuccess(position) {
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
-      const speedMph = Math.round((position.coords.speed || 0) * 2.23694);
+      const speedMps = position.coords.speed || 0;
+      const speedMph = Math.round(speedMps * 2.23694);
       lastSpeedMph = speedMph;
 
       document.getElementById('speed').innerText = `${speedMph} mph`;
+      evaluateSafetyTelematics(speedMps, speedMph, position.timestamp || Date.now());
 
       // Calculate distance to terminal stops
       const distMall = getDistanceMeters(lat, lng, MALL_COORDS.lat, MALL_COORDS.lng);

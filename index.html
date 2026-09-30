@@ -486,10 +486,44 @@
       else if (distParkside < 300) nearest = "Parkside";
       document.getElementById('nearestZone').innerText = nearest;
 
-      // Determine active trip
+      // Determine active trip based on current time
       const now = new Date();
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
+      const SHIFT_START_MINS = 13 * 60;       // 1:00 PM (780 mins)
+      const SHIFT_END_MINS = 20 * 60 + 47;    // 8:47 PM (1247 mins)
+
+      // 🏁 OFF-DUTY CHECK: If outside shift hours and driver hasn't manually selected a trip
+      if (manualTripIndex === null) {
+        if (currentMinutes < SHIFT_START_MINS) {
+          document.getElementById('activeTrip').innerText = "Standby (1:00 PM)";
+          document.getElementById('liveDelay').innerText = "Off Duty";
+          const card = document.getElementById('resultCard');
+          card.className = "result-card";
+          card.style.borderColor = "#334155";
+          card.style.background = "#0f172a";
+          card.style.color = "#94a3b8";
+          document.getElementById('probDisplay').innerText = "--";
+          document.getElementById('detailText').innerHTML = 
+            `<strong>Shift Not Started</strong><br>` +
+            `Run 758 begins at 1:00 PM from Montgomery Mall.<br>` +
+            `<em>(Use ◀ ▶ arrows above to test/simulate any trip)</em>`;
+          return;
+        } else if (currentMinutes > SHIFT_END_MINS) {
+          document.getElementById('activeTrip').innerText = "Shift Complete 🏁";
+          document.getElementById('liveDelay').innerText = "Off Duty";
+          const card = document.getElementById('resultCard');
+          card.className = "result-card parkside-win";
+          document.getElementById('probDisplay').innerText = "100%";
+          document.getElementById('detailText').innerHTML = 
+            `<strong>Run 758 Complete!</strong><br>` +
+            `Scheduled shift concluded at 8:47 PM. Great driving today!<br>` +
+            `<em>(Use ◀ ▶ arrows above to test/simulate any trip)</em>`;
+          return;
+        }
+      }
+
+      // Active shift logic
       let currentTrip;
       if (manualTripIndex !== null) {
         currentTrip = run758[manualTripIndex];
@@ -506,7 +540,7 @@
         document.getElementById('activeTrip').innerText = `Trip ${currentTrip.trip}`;
       }
 
-      // Calculate prediction (FIXED: Now calculates even when speed is 0 at a red light/terminal!)
+      // Calculate prediction even when stopped at a red light/terminal!
       if (!isOnBreak && !isDepotBound) {
         calculatePrediction(currentTrip, speedMph, nearest);
       }

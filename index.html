@@ -493,6 +493,16 @@
 
     async function toggleTracking() {
       if (!isTracking) {
+        // Reset Telematics for fresh session
+        maxSpeedMph = 0;
+        hardBrakeCount = 0;
+        lastSpeedMps = null;
+        lastSpeedTimestamp = null;
+        document.getElementById('maxSpeed').innerText = "0 mph";
+        const hbEl = document.getElementById('hardBrakes');
+        hbEl.innerText = "0";
+        hbEl.style.color = "#4ade80";
+
         initAudioContext();
         if ("geolocation" in navigator) {
           excludedDelayMs = 0;

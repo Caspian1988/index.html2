@@ -297,7 +297,7 @@
       }
 
       // 2. Evaluate Braking Deceleration (dv / dt)
-      if (lastSpeedMps !== null && lastSpeedTimestamp !== null) {
+      if (lastSpeedMph >= 15 && lastSpeedMps !== null && lastSpeedTimestamp !== null) {
         const timeDiffSeconds = (timestamp - lastSpeedTimestamp) / 1000;
 
         // Only compare consecutive GPS pings between 0.5s and 3.0s
@@ -306,27 +306,27 @@
           const decelMphPerSec = (speedDropMps / timeDiffSeconds) * 2.23694;
 
           const now = Date.now();
-          // Industry Standard: Deceleration >= 8.5 mph/s with a 4-second cooldown debounce
-          if (decelMphPerSec >= 8.5 && (now - lastHardBrakeEventTime > 4000)) {
+          // Commercial transit standard: Deceleration >= 10.0 mph/s with a 4-second debounce
+          if (decelMphPerSec >= 10.0 && (now - lastHardBrakeEventTime > 4000)) {
             hardBrakeCount++;
             lastHardBrakeEventTime = now;
             
             const hbDisplay = document.getElementById('hardBrakes');
             hbDisplay.innerText = `${hardBrakeCount}`;
-            hbDisplay.style.color = "#ef4444"; // Turn Red
+            hbDisplay.style.color = "#ef4444";
             
-            // Play gentle warning chime if enabled
             if (typeof playChime === 'function') {
-              playChime('mall'); 
+              playChime('mall');
             }
 
-            console.warn(`[SAFETY ALERT] Hard Brake Detected: -${decelMphPerSec.toFixed(1)} mph/s!`);
+            console.warn(`[SAFETY ALERT] True Hard Brake: -${decelMphPerSec.toFixed(1)} mph/s from ${lastSpeedMph} mph!`);
           }
         }
       }
 
       lastSpeedMps = speedMps;
       lastSpeedTimestamp = timestamp;
+      lastSpeedMph = speedMph;
     }
 
     // ==========================================
@@ -544,7 +544,6 @@
       const lng = position.coords.longitude;
       const speedMps = position.coords.speed || 0;
       const speedMph = Math.round(speedMps * 2.23694);
-      lastSpeedMph = speedMph;
 
       document.getElementById('speed').innerText = `${speedMph} mph`;
 
